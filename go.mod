@@ -16,5 +16,6 @@ require (
 	github.com/sirupsen/logrus v1.4.2 // indirect
 	github.com/spf13/cobra v0.0.3
 	google.golang.org/grpc v1.22.1 // indirect
+	gopkg.in/yaml.v2 v2.2.2
 	k8s.io/apimachinery v0.0.0-20190806215851-162a2dabc72f // indirect
 )

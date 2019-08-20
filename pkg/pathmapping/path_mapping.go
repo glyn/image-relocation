@@ -27,7 +27,7 @@ import (
 	"github.com/pivotal/image-relocation/pkg/image"
 )
 
-// PathMapping is a type of function which maps a given Name to a new Name by apply a repository prefix.
+// PathMapping is a type of function which maps a given Name to a new Name by applying a repository prefix.
 type PathMapping func(repoPrefix string, originalImage image.Name) image.Name
 
 // FlattenRepoPath maps the given Name to a new Name with a given repository prefix.

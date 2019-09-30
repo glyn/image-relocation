@@ -20,7 +20,10 @@ import (
 	"flag"
 	"os"
 
+	"k8s.io/apimachinery/pkg/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -28,6 +31,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
+	webhookv1alpha1 "github.com/pivotal/image-relocation/pkg/api/v1alpha1"
+
+	"github.com/pivotal/image-relocation/pkg/controller"
 	"github.com/pivotal/image-relocation/pkg/relocatingwebhook"
 )
 
@@ -44,6 +50,18 @@ func main() {
 		entryLog.Info("debug logging enabled")
 	}
 
+	entryLog.Info("setting up scheme")
+	scheme := runtime.NewScheme()
+	if err := clientgoscheme.AddToScheme(scheme); err != nil {
+		entryLog.Error(err, "unable to add client-go types to scheme")
+		os.Exit(1)
+	}
+	if err := webhookv1alpha1.AddToScheme(scheme); err != nil {
+		// +kubebuilder:scaffold:scheme
+		entryLog.Error(err, "unable to add webhook types to scheme")
+		os.Exit(1)
+	}
+
 	entryLog.Info("setting up controller manager")
 	mgr, err := manager.New(config.GetConfigOrDie(), manager.Options{})
 	if err != nil {
@@ -58,6 +76,14 @@ func main() {
 	hookServer.Register("/image-relocation", &webhook.Admission{
 		Handler: relocatingwebhook.NewLoggingWebhookHandler(relocatingwebhook.NewImageReferenceRelocator(), log.WithName("handlers"), debug),
 	})
+
+	if err = (&controller.ImageMapReconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("ImageMap"),
+	}).SetupWithManager(mgr); err != nil {
+		entryLog.Error(err, "unable to create controller", "controller", "ImageMap")
+		os.Exit(1)
+	}
 
 	entryLog.Info("starting controller manager")
 	if err := mgr.Start(signals.SetupSignalHandler()); err != nil {

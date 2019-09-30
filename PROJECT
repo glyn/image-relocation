@@ -1,0 +1,7 @@
+version: "2"
+domain: image-relocation.pivotal.io
+repo: github.com/pivotal/image-relocation
+resources:
+- group: webhook
+  version: v1alpha1
+  kind: ImageMap
